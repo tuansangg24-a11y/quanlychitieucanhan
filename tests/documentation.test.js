@@ -1,9 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
-test('README links point to existing screenshots and migration',()=>{
+test('README includes demo and links to an existing migration',()=>{
  const readme=readFileSync(new URL('../README.md',import.meta.url),'utf8');
- for(const path of ['overview','transactions','recurring']) assert.ok(existsSync(new URL(`../docs/screenshots/${path}.svg`,import.meta.url)));
+ assert.ok(existsSync(new URL('../supabase/migrations/20261110_recurring_transactions.sql',import.meta.url)));
  assert.match(readme,/\/demo/);assert.match(readme,/20261110_recurring_transactions.sql/);
 });
 test('recurring migration includes owner policies and durable deduplication',()=>{

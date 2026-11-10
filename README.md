@@ -21,16 +21,6 @@ Có thể dùng thử ngay với 40 giao dịch mẫu bằng chế độ demo, k
 
 Số tiền được nhập bằng VND nguyên dương, tối đa 15 chữ số. Số dư trên trang Tổng quan là thu trừ chi của tháng đang chọn.
 
-## Ảnh chụp màn hình
-
-Các hình dưới đây là **placeholder**, chưa phải ảnh chụp ứng dụng. Thay bằng PNG thực tế trong `docs/screenshots/` và cập nhật đường dẫn ảnh.
-
-![Placeholder tổng quan](docs/screenshots/overview.svg)
-
-![Placeholder giao dịch](docs/screenshots/transactions.svg)
-
-![Placeholder định kỳ](docs/screenshots/recurring.svg)
-
 ## Công nghệ
 
 | Thành phần | Công nghệ |
@@ -112,7 +102,6 @@ Bộ kiểm tra hiện có 23 bài, bao gồm xử lý tiền VND, ngày/tháng,
 ## Cấu trúc dự án
 
 ```text
-docs/screenshots/   Hình minh họa placeholder cho README
 public/icons/       Biểu tượng ứng dụng và PWA
 src/
   auth/             Quản lý phiên đăng nhập
