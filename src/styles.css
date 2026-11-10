@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base {
+  body {
+    @apply m-0 bg-[#f7f8f4] font-sans text-stone-900 antialiased;
+  }
+  input,
+  select,
+  textarea {
+    @apply mt-2 block min-h-12 min-w-0 w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-base font-normal outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100 disabled:opacity-60;
+  }
+  input[type="color"] {
+    @apply p-1;
+  }
+  h1 {
+    @apply mt-2 text-3xl font-semibold tracking-tight;
+  }
+  button,
+  a {
+    @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700;
+  }
+  button {
+    @apply disabled:cursor-wait disabled:opacity-60;
+  }
+}
+@layer components {
+  .primary {
+    @apply min-h-12 rounded-xl bg-emerald-800 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-900;
+  }
+  .secondary {
+    @apply min-h-11 rounded-xl border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-50;
+  }
+  .danger {
+    @apply min-h-11 rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800;
+  }
+  .panel {
+    @apply rounded-2xl border border-stone-200 bg-white;
+  }
+  .field {
+    @apply block text-sm font-medium;
+  }
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-widest text-emerald-800;
+  }
+  .page-heading {
+    @apply mb-7 flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center;
+  }
+  .text-button {
+    @apply min-h-11 rounded-lg px-3 py-2 text-sm font-medium hover:bg-stone-50;
+  }
+  .category-choice {
+    @apply flex min-h-12 items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm;
+  }
+  .nav-link {
+    @apply border-b-2 py-4 text-sm font-semibold;
+  }
+  .modal {
+    @apply fixed m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto overscroll-contain rounded-2xl border border-stone-200 bg-white p-5 text-stone-900 shadow-xl sm:p-7;
+  }
+  .modal::backdrop {
+    background: rgb(28 25 23 / 45%);
+  }
+}
