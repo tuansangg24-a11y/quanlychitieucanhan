@@ -1,4 +1,9 @@
-import { useState } from "react";
+import Toast from "../components/Toast";
+import { useAuth } from "../auth/AuthProvider";
+import { supabase } from "../lib/supabase";
+import { readDemo } from "../lib/localData";
+import { exportTransactions } from "../lib/api";
+import { useEffect, useState } from "react";
 import { useData } from "../data/DataProvider";
 import { deleteRow } from "../lib/api";
 import { typeLabel } from "../lib/finance";
@@ -8,6 +13,56 @@ import Feedback from "../components/Feedback";
 
 export default function CategoriesPage() {
   const { userId, categories, reload, loading } = useData();
+  const { demo } = useAuth();
+  const [usage, setUsage] = useState(null);
+  const [usageError, setUsageError] = useState("");
+  const [usageRevision, setUsageRevision] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController();
+    setUsage(null);
+    setUsageError("");
+    async function checkUsage() {
+      const transactions = await exportTransactions(
+        userId,
+        { month: "", search: "", min: "", max: "" },
+        controller.signal,
+      );
+      const used = new Set(transactions.map((row) => row.category_id));
+      if (demo) {
+        const data = readDemo();
+        [...data.budgets, ...(data.recurring_transactions || [])].forEach(
+          (row) => used.add(row.category_id),
+        );
+      } else {
+        await Promise.all(
+          categories.map(async (category) => {
+            for (const table of ["budgets", "recurring_transactions"]) {
+              const result = await supabase
+                .from(table)
+                .select("id")
+                .eq("user_id", userId)
+                .eq("category_id", category.id)
+                .limit(1)
+                .abortSignal(controller.signal);
+              if (result.error) throw result.error;
+              if (result.data.length) {
+                used.add(category.id);
+                break;
+              }
+            }
+          }),
+        );
+      }
+      if (!controller.signal.aborted) setUsage(used);
+    }
+    checkUsage().catch(() => {
+      if (!controller.signal.aborted)
+        setUsageError(
+          "Chưa kiểm tra được danh mục đang dùng. Kết nối mạng rồi thử lại trước khi xóa.",
+        );
+    });
+    return () => controller.abort();
+  }, [userId, categories, demo, usageRevision]);
   const [editor, setEditor] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [notice, setNotice] = useState("");
@@ -44,11 +99,18 @@ export default function CategoriesPage() {
           + Thêm danh mục
         </button>
       </div>
-      {notice && (
-        <div className="mb-5">
-          <Feedback>{notice}</Feedback>
+      {usageError && (
+        <div className="mb-4">
+          <Feedback error>{usageError}</Feedback>
+          <button
+            className="text-button"
+            onClick={() => setUsageRevision((v) => v + 1)}
+          >
+            Thử lại
+          </button>
         </div>
       )}
+      {notice && <Toast onClose={() => setNotice("")}>{notice}</Toast>}
       <div
         className="mb-6 flex gap-2"
         role="group"
@@ -74,7 +136,7 @@ export default function CategoriesPage() {
         </p>
       )}
       {visible.length ? (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="category-list">
           {visible.map((category) => (
             <li key={category.id} className="panel min-w-0 p-5">
               <div className="flex items-center gap-3">
@@ -113,25 +175,44 @@ export default function CategoriesPage() {
                     setNotice("");
                     setDeleting(category);
                   }}
+                  disabled={!usage || usage.has(category.id)}
+                  title={
+                    usage?.has(category.id)
+                      ? "Danh mục đang có giao dịch, hạn mức hoặc lịch định kỳ nên không thể xóa"
+                      : !usage
+                        ? "Đang kiểm tra danh mục"
+                        : undefined
+                  }
+                  aria-describedby={`usage-${category.id}`}
                   aria-label={`Xóa danh mục ${category.name}`}
                 >
                   Xóa
                 </button>
               </div>
+              {(!usage || usage.has(category.id)) && (
+                <p
+                  id={`usage-${category.id}`}
+                  className="text-xs muted text-right mt-1"
+                >
+                  {usage?.has(category.id)
+                    ? "Đang có giao dịch, hạn mức hoặc lịch định kỳ · Không thể xóa"
+                    : "Chờ kiểm tra trước khi xóa"}
+                </p>
+              )}
             </li>
           ))}
         </ul>
       ) : (
         <section className="panel p-10 text-center">
-          <p className="text-3xl" aria-hidden="true">
-            📂
-          </p>
           <h2 className="mt-4 font-semibold">
             Chưa có danh mục {type === "income" ? "thu" : "chi"}
           </h2>
           <p className="mt-2 text-sm text-stone-500">
             Thêm danh mục đầu tiên để bắt đầu ghi giao dịch.
           </p>
+          <button className="primary mt-4" onClick={() => setEditor({})}>
+            Thêm danh mục
+          </button>
         </section>
       )}
       {editor && (

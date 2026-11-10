@@ -15,6 +15,12 @@ export default function TransactionForm({ transaction, onClose, onSaved }) {
     amount: transaction ? String(transaction.amount) : "",
     category_id:
       transaction?.category_id ||
+      categories.find(
+        (item) =>
+          item.type === initialType &&
+          item.id ===
+            localStorage.getItem(`finance-category-${userId}-${initialType}`),
+      )?.id ||
       categories.find((item) => item.type === initialType)?.id ||
       "",
     date: transaction?.date || todayVN(),
@@ -30,7 +36,15 @@ export default function TransactionForm({ transaction, onClose, onSaved }) {
     setValues((current) => ({
       ...current,
       type,
-      category_id: categories.find((item) => item.type === type)?.id || "",
+      category_id:
+        categories.find(
+          (item) =>
+            item.type === type &&
+            item.id ===
+              localStorage.getItem(`finance-category-${userId}-${type}`),
+        )?.id ||
+        categories.find((item) => item.type === type)?.id ||
+        "",
     }));
   }
   async function submit(event) {
@@ -47,6 +61,10 @@ export default function TransactionForm({ transaction, onClose, onSaved }) {
     setError("");
     try {
       await saveRow("transactions", userId, payload, transaction?.id);
+      localStorage.setItem(
+        `finance-category-${userId}-${payload.type}`,
+        payload.category_id,
+      );
       onSaved(payload);
     } catch (failure) {
       setError(dataError(failure));
@@ -62,11 +80,7 @@ export default function TransactionForm({ transaction, onClose, onSaved }) {
     >
       <form onSubmit={submit} aria-busy={busy}>
         <fieldset disabled={busy} className="space-y-5">
-          <div
-            className="grid grid-cols-2 gap-2"
-            role="group"
-            aria-label="Loại giao dịch"
-          >
+          <div className="segmented" role="group" aria-label="Loại giao dịch">
             {[
               ["expense", "Khoản chi"],
               ["income", "Khoản thu"],
@@ -83,29 +97,58 @@ export default function TransactionForm({ transaction, onClose, onSaved }) {
             ))}
           </div>
           <label className="field">
-            Số tiền (VND)
+            Số tiền (₫)
             <input
               autoFocus
               data-autofocus
               inputMode="numeric"
-              pattern="[0-9]{1,15}"
-              maxLength={15}
+              className="amount-input"
+              onInvalid={(event) =>
+                event.target.setCustomValidity(
+                  "Nhập số tiền là số nguyên dương, tối đa 15 chữ số",
+                )
+              }
+              onInput={(event) => event.target.setCustomValidity("")}
+              pattern="[0-9.]{1,19}"
+              maxLength={19}
               required
-              placeholder="50000"
-              value={values.amount}
-              onChange={(event) => change("amount", event.target.value)}
+              placeholder="0"
+              value={values.amount.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+              onChange={(event) =>
+                change("amount", event.target.value.replace(/\./g, ""))
+              }
               aria-describedby="amount-help"
             />
           </label>
-          <p id="amount-help" className="text-sm text-stone-500">
-            {/^\d+$/.test(values.amount)
-              ? formatMoney(values.amount)
-              : "Nhập chữ số, ví dụ 50000 cho 50.000 ₫."}
+          <p id="amount-help" className="text-xs text-center muted">
+            Nhập số tiền là số nguyên dương, tối đa 15 chữ số.
           </p>
+          <div className="quick-amounts">
+            {[10000, 50000, 100000].map((amount) => (
+              <button
+                type="button"
+                className="secondary"
+                key={amount}
+                onClick={() =>
+                  change(
+                    "amount",
+                    String(
+                      Math.min(
+                        999999999999999,
+                        Number(values.amount || 0) + amount,
+                      ),
+                    ),
+                  )
+                }
+              >
+                +{amount / 1000}k
+              </button>
+            ))}
+          </div>
           <fieldset>
             <legend className="field mb-2">Danh mục</legend>
             {choices.length ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-3 gap-2">
                 {choices.map((category) => (
                   <button
                     type="button"
@@ -153,7 +196,7 @@ export default function TransactionForm({ transaction, onClose, onSaved }) {
             />
           </label>
           {error && <Feedback error>{error}</Feedback>}
-          <div className="flex justify-end gap-3">
+          <div className="sheet-actions">
             <button type="button" className="secondary" onClick={onClose}>
               Hủy
             </button>

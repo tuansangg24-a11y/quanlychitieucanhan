@@ -1,3 +1,5 @@
+import Toast from "../components/Toast";
+import Skeleton from "../components/Skeleton";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useData } from "../data/DataProvider";
@@ -58,7 +60,7 @@ export default function BudgetsPage() {
           onClick={() => setEditor({})}
           disabled={data.loading || !!data.error || !available}
         >
-          + Đặt ngân sách
+          + Đặt hạn mức
         </button>
       </div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -73,13 +75,9 @@ export default function BudgetsPage() {
           Làm mới
         </button>
       </div>
-      {notice && (
-        <div className="mb-5">
-          <Feedback>{notice}</Feedback>
-        </div>
-      )}
+      {notice && <Toast onClose={() => setNotice("")}>{notice}</Toast>}
       {data.loading ? (
-        <p role="status">Đang tải ngân sách…</p>
+        <Skeleton label="Đang tải ngân sách…" />
       ) : data.error ? (
         <section className="space-y-4">
           <Feedback error>{data.error}</Feedback>
@@ -111,7 +109,7 @@ export default function BudgetsPage() {
             </section>
           )}
           {data.budgets.length ? (
-            <ul className="grid gap-4 sm:grid-cols-2">
+            <ul className="budget-list">
               {data.budgets.map((budget) => {
                 const category = byId.get(budget.category_id);
                 return (
@@ -156,9 +154,6 @@ export default function BudgetsPage() {
             </ul>
           ) : (
             <section className="panel p-9 text-center">
-              <p className="text-3xl" aria-hidden="true">
-                🎯
-              </p>
               <h2 className="mt-4 font-semibold">
                 Chưa đặt ngân sách tháng này
               </h2>
@@ -167,7 +162,7 @@ export default function BudgetsPage() {
               </p>
               {available ? (
                 <button className="primary mt-5" onClick={() => setEditor({})}>
-                  Đặt ngân sách đầu tiên
+                  Đặt hạn mức đầu tiên
                 </button>
               ) : (
                 <Link
@@ -179,6 +174,28 @@ export default function BudgetsPage() {
               )}
             </section>
           )}
+          {data.budgets.length > 0 &&
+            categories
+              .filter(
+                (c) =>
+                  c.type === "expense" &&
+                  !data.budgets.some((b) => b.category_id === c.id),
+              )
+              .map((c) => (
+                <div className="transaction-row" key={c.id}>
+                  <span aria-hidden="true">{c.emoji}</span>
+                  <div className="flex-1">
+                    <h2 className="text-sm font-semibold">{c.name}</h2>
+                    <p className="text-xs muted">
+                      Đã chi {formatMoney(stats.categoryTotals.get(c.id) || 0n)}{" "}
+                      · Chưa đặt hạn mức
+                    </p>
+                  </div>
+                  <button className="secondary" onClick={() => setEditor({})}>
+                    Đặt hạn mức
+                  </button>
+                </div>
+              ))}
           <p className="mt-5 text-xs leading-6 text-stone-500">
             Vàng từ 80%, đỏ khi vượt 100%. Hạn mức chỉ nhắc nhở, không ngăn bạn
             ghi giao dịch.

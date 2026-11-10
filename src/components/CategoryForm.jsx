@@ -79,25 +79,85 @@ export default function CategoryForm({ category, onClose, onSaved }) {
               thu/chi.
             </p>
           )}
-          <div className="grid grid-cols-2 gap-4">
-            <label className="field">
-              Biểu tượng emoji
-              <input
-                required
-                maxLength={32}
-                value={values.emoji}
-                onChange={(event) => change("emoji", event.target.value)}
-              />
-            </label>
-            <label className="field">
-              Màu danh mục
-              <input
-                type="color"
-                value={values.color}
-                onChange={(event) => change("color", event.target.value)}
-              />
-            </label>
-          </div>
+          <fieldset>
+            <legend className="field mb-2">Biểu tượng</legend>
+            <div className="grid grid-cols-6 gap-2">
+              {[
+                ...new Set([
+                  values.emoji,
+                  "🍜",
+                  "☕",
+                  "🛒",
+                  "🏠",
+                  "🚌",
+                  "🎓",
+                  "💊",
+                  "🎬",
+                  "👕",
+                  "💼",
+                  "💰",
+                  "📌",
+                ]),
+              ].map((icon) => (
+                <button
+                  className="secondary text-xl px-1"
+                  type="button"
+                  aria-label={`Biểu tượng ${icon}`}
+                  aria-pressed={values.emoji === icon}
+                  key={icon}
+                  onClick={() => change("emoji", icon)}
+                  style={{
+                    borderColor:
+                      values.emoji === icon ? "var(--brand)" : undefined,
+                  }}
+                >
+                  {icon}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend className="field mb-2">Màu danh mục</legend>
+            <div className="flex flex-wrap gap-2">
+              {[
+                ...new Set([
+                  values.color,
+                  "#0072b2",
+                  "#e69f00",
+                  "#009e73",
+                  "#cc79a7",
+                  "#56b4e9",
+                  "#d55e00",
+                  "#595959",
+                ]),
+              ].map((color) => (
+                <button
+                  type="button"
+                  className="rounded-lg border p-2"
+                  aria-label={`Màu ${color}`}
+                  aria-pressed={values.color === color}
+                  key={color}
+                  onClick={() => change("color", color)}
+                  style={{
+                    borderColor:
+                      values.color === color ? "var(--brand)" : "var(--border)",
+                  }}
+                >
+                  <span
+                    style={{
+                      background: color,
+                      width: 24,
+                      height: 24,
+                      display: "block",
+                      borderRadius: 6,
+                    }}
+                  >
+                    {values.color === color ? "✓" : ""}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
           <p className="flex items-center gap-3 rounded-xl border border-stone-200 p-4">
             <span
               className="grid h-10 w-10 place-items-center rounded-xl text-xl"
@@ -114,7 +174,7 @@ export default function CategoryForm({ category, onClose, onSaved }) {
             />
           </p>
           {error && <Feedback error>{error}</Feedback>}
-          <div className="flex justify-end gap-3">
+          <div className="sheet-actions">
             <button type="button" className="secondary" onClick={onClose}>
               Hủy
             </button>

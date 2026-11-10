@@ -2,146 +2,130 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import { Link } from "react-router-dom";
 import { formatMoney } from "../lib/finance";
-
-function compactMoney(value) {
-  if (value >= 1e9) return `${Number((value / 1e9).toFixed(1))} tỷ`;
-  if (value >= 1e6) return `${Number((value / 1e6).toFixed(1))} tr`;
-  if (value >= 1e3) return `${Number((value / 1e3).toFixed(1))}k`;
-  return value;
-}
-export default function ExpenseCharts({ stats }) {
-  if (stats.expense === 0n)
-    return (
-      <section className="panel p-8 text-center">
-        <p className="text-3xl" aria-hidden="true">
-          🌿
-        </p>
-        <h2 className="mt-4 font-semibold">Tháng này chưa có khoản chi</h2>
-        <p className="mt-2 text-sm text-stone-500">
-          Biểu đồ sẽ xuất hiện khi bạn ghi giao dịch chi tiêu.
-        </p>
-      </section>
-    );
+export default function ExpenseCharts({ stats, transactions, month }) {
+  const days = stats.days.map((day) => ({
+    ...day,
+    income: transactions
+      .filter((t) => t.date === day.date && t.type === "income")
+      .reduce((n, t) => n + Number(t.amount), 0),
+  }));
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
-      <section className="panel min-w-0 p-5">
-        <h2 className="font-semibold">Chi theo danh mục</h2>
-        <div
-          className="mt-4 h-64 w-full"
-          role="img"
-          aria-label="Biểu đồ tròn chi tiêu theo danh mục. Chi tiết ở danh sách bên dưới."
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={stats.byCategory}
-                dataKey="value"
-                nameKey="name"
-                innerRadius={65}
-                outerRadius={100}
-                paddingAngle={2}
-                isAnimationActive={false}
-              >
-                {stats.byCategory.map((item) => (
-                  <Cell key={item.id} fill={item.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(_value, _name, entry) => [
-                  formatMoney(entry.payload.total),
-                  "Đã chi",
-                ]}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <ul className="mt-3 space-y-3">
-          {stats.byCategory.map((item) => (
-            <li
-              key={item.id}
-              className="flex min-w-0 items-baseline justify-between gap-3 text-sm"
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: item.color }}
-                />
-                <span className="break-words">
-                  {item.emoji} {item.name}
-                </span>
-              </span>
-              <span className="shrink-0 font-medium">
-                {formatMoney(item.total)}
-              </span>
-            </li>
-          ))}
-        </ul>
+    <div className="grid gap-8 xl:grid-cols-2">
+      <section className="min-w-0">
+        <h2 className="section-title">Chi theo danh mục</h2>
+        {!stats.byCategory.length ? (
+          <p className="muted mt-5 text-sm">
+            Chưa có khoản chi. Bấm “Ghi giao dịch” để bắt đầu.
+          </p>
+        ) : (
+          <ul className="mt-4 space-y-1">
+            {stats.byCategory.map((item) => (
+              <li key={item.id}>
+                <Link
+                  className="block py-3 rounded-lg"
+                  to={`/app/giao-dich?category=${encodeURIComponent(item.id)}&month=${month}`}
+                >
+                  <div className="flex justify-between gap-3 text-sm">
+                    <span>
+                      {item.emoji} {item.name}
+                    </span>
+                    <span className="row-amount">
+                      {formatMoney(item.total)}
+                    </span>
+                  </div>
+                  <div className="category-bar">
+                    <span
+                      style={{
+                        width: `${Number((item.total * 100n) / stats.expense)}%`,
+                        background: item.color,
+                      }}
+                    />
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
-      <section className="panel min-w-0 p-5">
-        <h2 className="font-semibold">Chi theo ngày</h2>
-        <p className="mt-2 text-xs text-stone-500">
-          Đơn vị: VND · Chạm vào cột để xem số tiền.
+      <section className="min-w-0">
+        <h2 className="section-title">Thu chi theo ngày</h2>
+        <p className="text-xs muted mt-2">
+          Đơn vị: đồng · Cuộn ngang để xem cả tháng
+        </p>
+        <p className="text-xs my-3">
+          <span className="income">▰ Thu nhập</span>{" "}
+          <span className="ml-4" style={{ color: "var(--expense)" }}>
+            ▰ Chi tiêu
+          </span>
         </p>
         <div
-          className="mt-6 h-72 w-full"
+          className="chart-scroll"
           role="img"
-          aria-label="Biểu đồ cột chi tiêu theo ngày trong tháng."
+          aria-label={`Thu ${formatMoney(stats.income)}, chi ${formatMoney(stats.expense)}. Xem bảng số liệu bên dưới.`}
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={stats.days}
-              margin={{ top: 12, right: 0, bottom: 0, left: -8 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis
-                dataKey="day"
-                tick={{ fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-                interval="preserveStartEnd"
-                minTickGap={12}
-              />
-              <YAxis
-                tickFormatter={compactMoney}
-                tick={{ fontSize: 10 }}
-                tickLine={false}
-                axisLine={false}
-                width={62}
-              />
-              <Tooltip
-                labelFormatter={(label) => `Ngày ${label}`}
-                formatter={(_value, _name, entry) => [
-                  formatMoney(entry.payload.total),
-                  "Đã chi",
-                ]}
-              />
-              <Bar
-                dataKey="value"
-                fill="#166534"
-                radius={[4, 4, 0, 0]}
-                isAnimationActive={false}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <div>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={days}>
+                <CartesianGrid vertical={false} stroke="var(--border)" />
+                <XAxis
+                  dataKey="day"
+                  tick={{ fill: "var(--muted)", fontSize: 11 }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tickFormatter={(v) =>
+                    v >= 1e6 ? `${v / 1e6} tr` : `${v / 1000}k`
+                  }
+                  width={65}
+                  tick={{ fill: "var(--muted)", fontSize: 11 }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--surface)",
+                    borderColor: "var(--border)",
+                    color: "var(--text)",
+                  }}
+                  labelFormatter={(v) => `Ngày ${v}`}
+                  formatter={(v, name) => [formatMoney(v), name]}
+                />
+                <Bar
+                  name="Thu nhập"
+                  dataKey="income"
+                  fill="var(--income)"
+                  radius={[3, 3, 0, 0]}
+                  isAnimationActive={false}
+                />
+                <Bar
+                  name="Chi tiêu"
+                  dataKey="value"
+                  fill="var(--expense)"
+                  radius={[3, 3, 0, 0]}
+                  isAnimationActive={false}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-        <details className="mt-4 text-sm">
-          <summary className="cursor-pointer font-medium text-emerald-800">
+        <details className="mt-3 text-sm">
+          <summary className="text-button cursor-pointer">
             Xem số liệu từng ngày
           </summary>
-          <ul className="mt-3 max-h-52 space-y-2 overflow-y-auto">
-            {stats.days.map((day) => (
-              <li key={day.date} className="flex justify-between gap-3">
-                <span>Ngày {day.day}</span>
-                <span>{formatMoney(day.total)}</span>
+          <ul className="max-h-52 overflow-auto">
+            {days.map((d) => (
+              <li
+                key={d.date}
+                className="py-2 border-b"
+                style={{ borderColor: "var(--border)" }}
+              >
+                Ngày {d.day} · Thu {formatMoney(d.income)} · Chi{" "}
+                {formatMoney(d.total)}
               </li>
             ))}
           </ul>

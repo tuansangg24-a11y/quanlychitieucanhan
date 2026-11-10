@@ -32,7 +32,7 @@ export default function BudgetMeter({ spent, limit, name }) {
         className="h-2.5 overflow-hidden rounded-full bg-stone-100"
       >
         <div
-          className={`h-full rounded-full ${color}`}
+          className={`progress-fill h-full rounded-full ${color}`}
           style={{ width: `${progress.width}%` }}
         />
       </div>
@@ -42,7 +42,7 @@ export default function BudgetMeter({ spent, limit, name }) {
         {progress.state === "over"
           ? `Vượt hạn mức ${formatMoney(-progress.remaining)}`
           : progress.state === "warning"
-            ? `Đã đạt ít nhất 80% · Còn ${formatMoney(progress.remaining)}`
+            ? `Đã dùng ${progress.percentage}%, sắp chạm hạn mức · Còn ${formatMoney(progress.remaining)}`
             : `Còn ${formatMoney(progress.remaining)}`}
       </p>
     </div>

@@ -2,65 +2,16 @@ import { lazy, Suspense, useState } from "react";
 import { Link } from "react-router-dom";
 import { useData } from "../data/DataProvider";
 import useMonthData from "../data/useMonthData";
-import { formatMoney, todayVN } from "../lib/finance";
-import { comparison, shiftMonth, summarizeMonth } from "../lib/statistics";
+import { formatDate, formatMoney, todayVN } from "../lib/finance";
+import { shiftMonth, summarizeMonth } from "../lib/statistics";
 import Feedback from "../components/Feedback";
 import MonthPicker from "../components/MonthPicker";
-import TransactionForm from "../components/TransactionForm";
 import BudgetMeter from "../components/BudgetMeter";
-
+import Skeleton from "../components/Skeleton";
 const ExpenseCharts = lazy(() => import("../components/ExpenseCharts"));
-function SummaryCard({
-  label,
-  amount,
-  previous,
-  expense = false,
-  balance = false,
-}) {
-  const change = comparison(amount, previous);
-  const direction =
-    change.delta > 0n ? "Tăng" : change.delta < 0n ? "Giảm" : "Không đổi";
-  const favorable = expense ? change.delta <= 0n : change.delta >= 0n;
-  return (
-    <section
-      className={`min-w-0 rounded-2xl border p-5 ${balance ? "border-emerald-800 bg-emerald-800 text-white" : "border-stone-200 bg-white"}`}
-    >
-      <h2
-        className={`text-sm ${balance ? "text-emerald-100" : "text-stone-500"}`}
-      >
-        {label}
-      </h2>
-      <p
-        className="mt-3 break-words text-2xl font-semibold tabular-nums"
-        data-testid={`summary-${balance ? "balance" : expense ? "expense" : "income"}`}
-      >
-        {formatMoney(amount)}
-      </p>
-      <p
-        className={`mt-4 text-xs leading-5 ${balance ? "text-emerald-100" : favorable ? "text-emerald-700" : "text-amber-800"}`}
-      >
-        {direction}
-        {change.delta !== 0n
-          ? ` ${formatMoney(change.delta < 0n ? -change.delta : change.delta)}`
-          : ""}
-        {change.percentage !== null && change.delta !== 0n
-          ? ` (${Math.abs(change.percentage).toLocaleString("vi-VN")}%)`
-          : ""}
-      </p>
-      <p
-        className={`mt-1 text-xs ${balance ? "text-emerald-100" : "text-stone-500"}`}
-      >
-        Tháng trước: {formatMoney(previous)}
-        {previous === 0n && amount !== 0n ? " · chưa có tỷ lệ so sánh" : ""}
-      </p>
-    </section>
-  );
-}
 export default function DashboardPage() {
   const { categories } = useData();
   const [month, setMonth] = useState(() => todayVN().slice(0, 7));
-  const [adding, setAdding] = useState(false);
-  const [notice, setNotice] = useState("");
   const data = useMonthData(month, true);
   const stats = summarizeMonth(data.transactions, categories, month);
   const previous = summarizeMonth(
@@ -68,128 +19,141 @@ export default function DashboardPage() {
     categories,
     shiftMonth(month, -1),
   );
-  const byId = new Map(categories.map((category) => [category.id, category]));
+  const limit = data.budgets.reduce((sum, b) => sum + BigInt(b.amount), 0n);
+  const byId = new Map(categories.map((c) => [c.id, c]));
   return (
     <>
       <div className="page-heading">
-        <div>
-          <p className="eyebrow">Bức tranh tài chính của bạn</p>
-          <h1>Tổng quan</h1>
-          <p className="mt-2 text-stone-500">
-            Thu, chi và những thói quen trong tháng.
-          </p>
-        </div>
-        <button className="primary" onClick={() => setAdding(true)}>
-          + Thêm giao dịch
-        </button>
-      </div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <MonthPicker
-          month={month}
-          onChange={(value) => {
-            setMonth(value);
-            setNotice("");
-          }}
-        />
+        <h1>Tổng quan</h1>
         <button className="text-button" onClick={data.reload}>
           Làm mới
         </button>
       </div>
-      {notice && (
-        <div className="mb-5">
-          <Feedback>{notice}</Feedback>
-        </div>
-      )}
+      <MonthPicker month={month} onChange={setMonth} />
       {data.loading ? (
-        <p role="status">Đang tổng hợp thu chi…</p>
+        <Skeleton label="Đang tổng hợp thu chi…" />
       ) : data.error ? (
-        <section className="space-y-4">
+        <>
           <Feedback error>{data.error}</Feedback>
-          <button className="secondary" onClick={data.reload}>
+          <button className="secondary mt-4" onClick={data.reload}>
             Thử lại
           </button>
-        </section>
+        </>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-3">
-            <SummaryCard
-              label="Tổng thu"
-              amount={stats.income}
-              previous={previous.income}
-            />
-            <SummaryCard
-              label="Tổng chi"
-              amount={stats.expense}
-              previous={previous.expense}
-              expense
-            />
-            <SummaryCard
-              label="Số dư trong tháng"
-              amount={stats.balance}
-              previous={previous.balance}
-              balance
-            />
+          <section className="hero">
+            <h2 className="muted text-sm">
+              {limit > 0n ? "Còn có thể chi" : "Số dư tháng"}
+            </h2>
+            <p className="hero-amount" data-testid="summary-balance">
+              {formatMoney(limit > 0n ? limit - stats.expense : stats.balance)}
+            </p>
+            {limit > 0n ? (
+              <>
+                <BudgetMeter
+                  spent={stats.expense}
+                  limit={limit}
+                  name="tổng tháng"
+                />
+                <p className="muted text-xs mt-3">
+                  Tổng hạn mức {formatMoney(limit)} · Tính trên toàn bộ khoản
+                  chi trong tháng.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm muted">
+                Thu trừ chi trong tháng.{" "}
+                <Link className="underline" to="/app/ngan-sach">
+                  Đặt hạn mức để biết còn bao nhiêu có thể chi
+                </Link>
+              </p>
+            )}
+          </section>
+          <div className="summary-line">
+            {[
+              ["Tổng thu", "income"],
+              ["Tổng chi", "expense"],
+            ].map(([label, key]) => {
+              const delta = stats[key] - previous[key];
+              return (
+                <section key={key}>
+                  <h2 className="muted text-sm">{label}</h2>
+                  <p
+                    className={`text-xl font-semibold tabular-nums mt-2 ${key === "income" ? "income" : ""}`}
+                    data-testid={`summary-${key}`}
+                  >
+                    {formatMoney(stats[key])}
+                  </p>
+                  <p className="text-xs muted mt-3">
+                    {delta === 0n
+                      ? "Không đổi so với tháng trước"
+                      : `${delta > 0n ? "↑" : "↓"} ${key === "income" ? "Thu" : "Chi"} ${delta > 0n ? "nhiều" : "ít"} hơn tháng trước ${formatMoney(delta < 0n ? -delta : delta)}`}
+                  </p>
+                </section>
+              );
+            })}
           </div>
-          <p className="mb-6 mt-3 text-xs leading-6 text-stone-500">
-            Số dư trong tháng = thu − chi, không bao gồm số dư các tháng trước.
+          <p className="muted text-xs mb-5">
             So sánh với toàn bộ tháng trước; tháng hiện tại có thể chưa kết
             thúc.
           </p>
-          <Suspense fallback={<p role="status">Đang tải biểu đồ…</p>}>
-            <ExpenseCharts stats={stats} />
+          <Suspense fallback={<Skeleton rows={2} />}>
+            <ExpenseCharts
+              stats={stats}
+              transactions={data.transactions}
+              month={month}
+            />
           </Suspense>
-          <section className="panel mt-6 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-semibold">Theo dõi ngân sách</h2>
-              <Link
-                to="/app/ngan-sach"
-                className="text-sm font-semibold text-emerald-800 underline underline-offset-4"
-              >
-                Quản lý ngân sách →
+          <section className="mt-8">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="section-title">Giao dịch gần đây</h2>
+              <Link to="/app/giao-dich" className="text-button underline">
+                Xem tất cả
               </Link>
             </div>
-            {data.budgets.length ? (
-              <ul className="mt-4 grid gap-5 sm:grid-cols-2">
-                {data.budgets.map((budget) => (
-                  <li
-                    key={budget.id}
-                    className="min-w-0 rounded-xl border border-stone-100 p-4"
-                  >
-                    <h3 className="break-words text-sm font-semibold">
-                      {byId.get(budget.category_id)?.emoji}{" "}
-                      {byId.get(budget.category_id)?.name || "Danh mục khác"}
-                    </h3>
-                    <p className="mt-1 text-xs text-stone-500">
-                      Hạn mức {formatMoney(budget.amount)}
+            {[...data.transactions]
+              .sort(
+                (a, b) =>
+                  b.date.localeCompare(a.date) ||
+                  String(b.created_at || "").localeCompare(
+                    String(a.created_at || ""),
+                  ),
+              )
+              .slice(0, 5)
+              .map((t) => {
+                const c = byId.get(t.category_id);
+                return (
+                  <div className="transaction-row" key={t.id}>
+                    <span
+                      aria-hidden="true"
+                      className="transaction-icon"
+                      style={{ background: `${c?.color || "#64748b"}20` }}
+                    >
+                      {c?.emoji || "📌"}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{t.note || c?.name}</p>
+                      <p className="text-xs muted">
+                        {c?.name} · {formatDate(t.date)}
+                        {t.pending ? " · Chờ đồng bộ" : ""}
+                      </p>
+                    </div>
+                    <p
+                      className={`row-amount ${t.type === "income" ? "income" : ""}`}
+                    >
+                      {t.type === "income" ? "+" : "−"}
+                      {formatMoney(t.amount)}
                     </p>
-                    <BudgetMeter
-                      spent={stats.categoryTotals.get(budget.category_id) || 0n}
-                      limit={budget.amount}
-                      name={byId.get(budget.category_id)?.name || "Danh mục"}
-                    />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-4 text-sm leading-6 text-stone-500">
-                Chưa đặt hạn mức cho tháng này. Chọn một danh mục để bắt đầu
-                theo dõi.
+                  </div>
+                );
+              })}
+            {!data.transactions.length && (
+              <p className="mt-4 muted">
+                Chưa có giao dịch. Bấm “Ghi giao dịch” để thêm khoản đầu tiên.
               </p>
             )}
           </section>
         </>
-      )}
-      {adding && (
-        <TransactionForm
-          onClose={() => setAdding(false)}
-          onSaved={() => {
-            setAdding(false);
-            setNotice(
-              "Đã lưu giao dịch. Tổng quan hiển thị theo tháng đang chọn.",
-            );
-            data.reload();
-          }}
-        />
       )}
     </>
   );
