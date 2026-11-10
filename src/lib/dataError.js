@@ -1,8 +1,8 @@
 export function dataError(error, action = "save") {
   if (error?.code === "PGRST205" || error?.code === "42P01")
-    return "Chưa tìm thấy bảng dữ liệu của ứng dụng trong Supabase. Hãy chạy supabase/schema.sql trong SQL Editor của đúng dự án, rồi bấm tải lại.";
+    return "Chưa tìm thấy bảng dữ liệu của ứng dụng trong Supabase. Hãy kiểm tra đúng dự án; cài schema cho dự án mới hoặc chạy migration còn thiếu cho dự án đã có dữ liệu, rồi tải lại.";
   if (error?.code === "PGRST204" || error?.code === "42703")
-    return "Cấu trúc cơ sở dữ liệu chưa khớp với ứng dụng. Hãy kiểm tra các cột theo supabase/schema.sql trước khi thử lại.";
+    return "Cấu trúc cơ sở dữ liệu chưa khớp với ứng dụng. Hãy kiểm tra các cột và chạy migration còn thiếu trước khi thử lại.";
   if (error?.code === "23503")
     return action === "delete-category"
       ? "Danh mục đang được dùng trong giao dịch hoặc ngân sách nên chưa thể xóa. Hãy chuyển dữ liệu sang danh mục khác trước."

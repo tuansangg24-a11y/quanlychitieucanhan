@@ -13,6 +13,8 @@ const DataContext = createContext(null);
 export function DataProvider({ children }) {
   const { session } = useAuth();
   const userId = session.user.id;
+  const [syncRevision, setSyncRevision] = useState(0);
+  useEffect(() => { const changed = () => setSyncRevision(n => n + 1); window.addEventListener("finance-sync", changed); return () => window.removeEventListener("finance-sync", changed); }, []);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -36,7 +38,7 @@ export function DataProvider({ children }) {
   }, [userId, revision]);
   return (
     <DataContext.Provider
-      value={{ userId, categories, loading, error, reload }}
+      value={{ syncRevision, userId, categories, loading, error, reload }}
     >
       {children}
     </DataContext.Provider>

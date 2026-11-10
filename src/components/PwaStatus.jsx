@@ -50,8 +50,7 @@ export default function PwaStatus() {
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-5 py-3 text-sm text-emerald-950">
         {offline && (
           <p role="status">
-            Bạn đang ngoại tuyến. Cần kết nối mạng để tải và lưu thu chi; dữ
-            liệu chưa lưu sẽ không tự đồng bộ.
+            Bạn đang ngoại tuyến. Giao dịch được lưu trên thiết bị và chờ đồng bộ khi có mạng.
           </p>
         )}
         {installEvent && (

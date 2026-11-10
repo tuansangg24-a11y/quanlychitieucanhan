@@ -1,3 +1,7 @@
+import {generateRecurring} from '../lib/recurringApi';
+import {useEffect} from 'react';
+import {stopOffline} from '../lib/offlineApi';
+import SyncStatus from './SyncStatus';
 import { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
@@ -8,16 +12,19 @@ import Feedback from "./Feedback";
 import PwaStatus from "./PwaStatus";
 
 export default function AppShell() {
-  const { session } = useAuth();
+  const { session, demo, exitDemo } = useAuth();
   const { categories, error: categoryError, loading, reload } = useData();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  useEffect(() => { let active = true; generateRecurring(session.user.id).then(() => { if(active) window.dispatchEvent(new Event("finance-sync")); }).catch(() => { if(active) setError("Chưa tạo được giao dịch định kỳ. Kiểm tra migration và mạng, rồi mở trang Định kỳ để thử lại."); }); return () => {active=false;}; }, [session.user.id]);
   async function signOut() {
     setBusy(true);
     setError("");
     try {
+      if (demo) { exitDemo(); return; }
       const { error: failure } = await supabase.auth.signOut();
       if (failure) throw failure;
+      await stopOffline(session.user.id);
     } catch (failure) {
       setError(authError(failure));
     } finally {
@@ -26,6 +33,7 @@ export default function AppShell() {
   }
   return (
     <div className="min-h-screen">
+      {demo && <aside className="sticky top-0 z-30 flex flex-wrap items-center justify-center gap-3 bg-emerald-900 p-3 text-sm text-white"><span>Bạn đang dùng thử, dữ liệu chỉ lưu trên thiết bị này</span><Link to="/dang-ky" className="underline font-semibold">Đăng ký để lưu dữ liệu</Link></aside>}
       <header className="border-b border-stone-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-5">
           <Link to="/app" className="flex items-center gap-3 text-xl font-bold">
@@ -82,9 +90,11 @@ export default function AppShell() {
           >
             Ngân sách
           </NavLink>
+          <NavLink to="/app/dinh-ky" className={({ isActive }) => `nav-link whitespace-nowrap ${isActive ? "border-emerald-800 text-emerald-800" : "border-transparent text-stone-500"}`}>Định kỳ</NavLink>
         </nav>
       </header>
       <PwaStatus />
+      {!demo && <SyncStatus userId={session.user.id} />}
       <main className="mx-auto max-w-6xl px-4 py-7 sm:px-5 sm:py-10">
         {error && (
           <div className="mb-5">

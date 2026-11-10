@@ -5,7 +5,7 @@ import { dataError } from "../lib/dataError";
 import { shiftMonth } from "../lib/statistics";
 
 export default function useMonthData(month, compare = false) {
-  const { userId } = useData();
+  const { userId, syncRevision } = useData();
   const [revision, setRevision] = useState(0);
   const [state, setState] = useState({
     loading: true,
@@ -47,6 +47,6 @@ export default function useMonthData(month, compare = false) {
           }));
       });
     return () => controller.abort();
-  }, [userId, month, compare, revision]);
+  }, [userId, month, compare, revision, syncRevision]);
   return { ...state, reload: () => setRevision((value) => value + 1) };
 }

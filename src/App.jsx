@@ -1,3 +1,4 @@
+import RecurringPage from './pages/RecurringPage';
 import { useState } from "react";
 import {
   Link,
@@ -50,7 +51,7 @@ function ProtectedRoute() {
   );
 }
 function AuthPage({ signup = false }) {
-  const { session } = useAuth();
+  const { session, demo, startDemo, exitDemo } = useAuth();
   const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,7 +60,7 @@ function AuthPage({ signup = false }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const target = location.state?.from;
-  if (session)
+  if (session && !demo)
     return (
       <Navigate to={target?.startsWith("/app") ? target : "/app"} replace />
     );
@@ -73,6 +74,7 @@ function AuthPage({ signup = false }) {
       return;
     }
     setBusy(true);
+    exitDemo();
     try {
       const credentials = { email: email.trim(), password };
       const { data, error: failure } = signup
@@ -129,6 +131,8 @@ function AuthPage({ signup = false }) {
             ? "Tạo không gian quản lý chi tiêu của riêng bạn."
             : "Chào mừng bạn trở lại với Sổ chi tiêu."}
         </p>
+        <Link to="/demo" className="secondary mb-5 block text-center" onClick={startDemo}>Dùng thử không cần đăng ký</Link>
+        {configError && <Message error>{configError}</Message>}
         <form onSubmit={submit} className="space-y-5" aria-busy={busy}>
           <label className="block text-sm font-medium">
             Email
@@ -179,7 +183,7 @@ function AuthPage({ signup = false }) {
           )}
           {error && <Message error>{error}</Message>}
           {notice && <Message>{notice}</Message>}
-          <button disabled={busy} className="primary w-full">
+          <button disabled={busy || !!configError} className="primary w-full">
             {busy ? "Đang xử lý…" : signup ? "Tạo tài khoản" : "Đăng nhập"}
           </button>
         </form>
@@ -196,16 +200,12 @@ function AuthPage({ signup = false }) {
     </main>
   );
 }
+function DemoEntry({startDemo, demo}) {
+  const { session } = useAuth();
+  return (demo || session) ? <Navigate to="/app" replace /> : <button className="primary m-8" onClick={startDemo}>Dùng thử không cần đăng ký</button>;
+}
 export default function App() {
-  const { loading, error, retry, session } = useAuth();
-  if (configError)
-    return (
-      <main className="mx-auto max-w-lg p-6 pt-20">
-        <Brand />
-        <h1 className="my-6 text-2xl font-semibold">Thiết lập kết nối</h1>
-        <Message error>{configError}</Message>
-      </main>
-    );
+  const { loading, error, retry, session, demo, startDemo } = useAuth();
   if (loading)
     return (
       <main className="grid min-h-screen place-items-center">
@@ -227,6 +227,7 @@ export default function App() {
         path="/"
         element={<Navigate to={session ? "/app" : "/dang-nhap"} replace />}
       />
+      <Route path="/demo" element={<DemoEntry startDemo={startDemo} demo={demo} />} />
       <Route path="/dang-nhap" element={<AuthPage key="login" />} />
       <Route path="/dang-ky" element={<AuthPage key="signup" signup />} />
       <Route element={<ProtectedRoute />}>
@@ -242,6 +243,7 @@ export default function App() {
           <Route path="tong-quan" element={<DashboardPage />} />
           <Route path="giao-dich" element={<TransactionsPage />} />
           <Route path="danh-muc" element={<CategoriesPage />} />
+          <Route path="dinh-ky" element={<RecurringPage />} />
           <Route path="ngan-sach" element={<BudgetsPage />} />
         </Route>
       </Route>

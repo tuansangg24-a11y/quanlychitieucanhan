@@ -30,7 +30,7 @@ const initialFilters = () => ({
 });
 
 export default function TransactionsPage() {
-  const { userId, categories, loading: categoriesLoading } = useData();
+  const { syncRevision, userId, categories, loading: categoriesLoading } = useData();
   const [draft, setDraft] = useState(initialFilters);
   const [filters, setFilters] = useState(initialFilters);
   const [page, setPage] = useState(0);
@@ -70,7 +70,7 @@ export default function TransactionsPage() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [userId, filters, page, revision]);
+  }, [userId, filters, page, revision, syncRevision]);
 
   function changeFilter(key, value) {
     setDraft((current) => ({
@@ -335,7 +335,7 @@ export default function TransactionsPage() {
                       <time dateTime={transaction.date}>
                         {formatDate(transaction.date)}
                       </time>{" "}
-                      · {typeLabel(transaction.type)}
+                      · {typeLabel(transaction.type)} {(transaction.recurring_id || transaction.occurrence_date) && <span> · Định kỳ</span>} {transaction.pending && <strong className="text-amber-800"> · Chờ đồng bộ</strong>}
                     </p>
                     {transaction.note && (
                       <p className="mt-2 whitespace-pre-wrap break-words text-sm text-stone-600">

@@ -1,9 +1,13 @@
+import {stopOffline,enableOffline} from '../lib/offlineApi';
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { authError } from "../lib/authError";
 
 const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
+  const [demo, setDemo] = useState(() => sessionStorage.getItem("demo-mode") === "true" || window.location.pathname === "/demo");
+  const startDemo = () => { sessionStorage.setItem("demo-mode", "true"); setDemo(true); };
+  const exitDemo = () => { sessionStorage.removeItem("demo-mode"); setDemo(false); };
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -21,6 +25,8 @@ export function AuthProvider({ children }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) return;
+      if (_event === "SIGNED_OUT") { const previous = sessionStorage.getItem("finance-user"); if (previous) stopOffline(previous).catch(console.error); sessionStorage.removeItem("finance-user"); }
+      if (nextSession) { enableOffline(nextSession.user.id); sessionStorage.setItem("finance-user", nextSession.user.id); }
       eventReceived = true;
       setSession(nextSession);
       setError("");
@@ -47,7 +53,7 @@ export function AuthProvider({ children }) {
   }, [attempt]);
   return (
     <AuthContext.Provider
-      value={{ session, loading, error, retry: () => setAttempt((n) => n + 1) }}
+      value={{ session: session || (demo ? { user: { id: "demo", email: "Dùng thử" } } : null), demo: demo && !session, startDemo, exitDemo, loading: demo ? false : loading, error: demo ? "" : error, retry: () => setAttempt((n) => n + 1) }}
     >
       {children}
     </AuthContext.Provider>
